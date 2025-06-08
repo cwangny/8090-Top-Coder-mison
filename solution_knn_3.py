@@ -16,7 +16,7 @@ with open(DATA_PATH) as f:
 def mean_std(index):
     values = [row[index] for row in TRAINING_DATA]
     mean = sum(values) / len(values)
-    std = (sum((x - mean) ** 2 for x in values) / len(values)) ** 0.5
+    std = (sum((x - mean)**2 for x in values) / len(values)) ** 0.5
     return mean, std
 
 MEAN_TD, STD_TD = mean_std(0)
@@ -30,7 +30,7 @@ def normalize(td, miles, receipts):
         (receipts - MEAN_RECEIPTS) / STD_RECEIPTS
     )
 
-def predict_knn(td: float, miles: float, receipts: float) -> float:
+def predict_knn(td: float, miles: float, receipts: float, k: int = 3) -> float:
     norm_td, norm_miles, norm_receipts = normalize(td, miles, receipts)
 
     distances = []
@@ -42,28 +42,18 @@ def predict_knn(td: float, miles: float, receipts: float) -> float:
             (norm_receipts - n_receipts) ** 2
         )
         distances.append((d, t_output))
-
     distances.sort(key=lambda x: x[0])
-    nearest_distance = distances[0][0]
-
-    # ✅ Adaptive k logic
-    if nearest_distance < 0.05:
-        k = 1
-    elif nearest_distance < 0.15:
-        k = 3
-    else:
-        k = 5
-
     neighbors = distances[:k]
+
     total_weight = 0.0
     weighted_sum = 0.0
     for dist, out in neighbors:
-        weight = 1.0 / (dist + 1e-6)
-        total_weight += weight
-        weighted_sum += weight * out
+        w = 1.0 / (dist + 1e-6)
+        total_weight += w
+        weighted_sum += w * out
 
     result = weighted_sum / total_weight
-    result = max(0.0, min(result, 3000.0))  # Clip output
+    result = max(0.0, min(result, 3000.0))  # Clip to avoid extreme errors
     return round(result, 2)
 
 # Command-line interface
